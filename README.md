@@ -49,7 +49,7 @@ This backend is built with **FastAPI** and uses **SQLAlchemy** for ORM and **Ale
 
 5. **Start the Development Server**:
    ```bash
-   uv run uvicorn app.main:app --reload
+   uv run uvicorn main:app --port 8000 --reload
    ```
    The API will be available at `http://localhost:8000`.
 

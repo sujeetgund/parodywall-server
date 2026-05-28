@@ -1,6 +1,20 @@
-def main():
-    print("Hello from backend!")
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routers import auth
+from config import settings
 
+app = FastAPI(title=settings.app_name, debug=settings.debug)
 
-if __name__ == "__main__":
-    main()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router)
+
+@app.get("/")
+def root():
+    return {"message": "Hello from backend!"}
