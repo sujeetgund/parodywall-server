@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import random
 import string
 from database import get_db
-from models import User
+from models import User, Admin
 from schemas import UserCreate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
 from auth_utils import create_access_token, verify_token, get_password_hash, verify_password
 
@@ -46,6 +46,16 @@ def signin(req: UserLogin, db: Session = Depends(get_db)):
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer", "user": UserResponse.model_validate(user)}
+
+@router.post("/admin/signin")
+def admin_signin(req: UserLogin, db: Session = Depends(get_db)):
+    admin = db.query(Admin).filter(Admin.email == req.email).first()
+    if not admin or not verify_password(req.password, admin.hashed_password):
+        raise HTTPException(status_code=400, detail="Invalid admin credentials")
+        
+    # We can encode role='admin' in the JWT if we want to differentiate
+    access_token = create_access_token(data={"sub": str(admin.id), "role": "admin"})
+    return {"admin_access_token": access_token, "token_type": "bearer"}
 
 @router.post("/request-code")
 def request_code(req: RequestCodeRequest, db: Session = Depends(get_db)):
