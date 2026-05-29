@@ -20,7 +20,11 @@ class Settings(BaseSettings):
     # Email Service
     resend_api_key: str = Field(validation_alias="RESEND_API_KEY")
     resend_from_email: str = Field(validation_alias="RESEND_FROM_EMAIL")
-    
+    # AWS S3
+    aws_access_key_id: str = Field(validation_alias="AWS_ACCESS_KEY_ID", default="")
+    aws_secret_access_key: str = Field(validation_alias="AWS_SECRET_ACCESS_KEY", default="")
+    aws_region_name: str = Field(validation_alias="AWS_REGION_NAME", default="us-east-1")
+    aws_s3_bucket_name: str = Field(validation_alias="AWS_S3_BUCKET_NAME", default="")
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -14,9 +14,6 @@ security = HTTPBearer()
 def generate_random_alias():
     return "user_" + "".join(random.choices(string.digits, k=6))
 
-def generate_random_avatar():
-    avatars = ["https://api.dicebear.com/9.x/avataaars/svg?seed=1", "https://api.dicebear.com/9.x/avataaars/svg?seed=2", "https://api.dicebear.com/9.x/avataaars/svg?seed=3"]
-    return random.choice(avatars)
 
 @router.post("/signup")
 def signup(req: UserCreate, db: Session = Depends(get_db)):
@@ -27,7 +24,7 @@ def signup(req: UserCreate, db: Session = Depends(get_db)):
     user = User(
         email=req.email,
         alias=generate_random_alias(),
-        avatar=generate_random_avatar(),
+        avatar=req.avatar,
         hashed_password=get_password_hash(req.password),
         is_verified=False
     )
