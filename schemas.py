@@ -8,6 +8,10 @@ class UserCreate(BaseModel):
     password: str
     avatar: str
 
+class UserUpdate(BaseModel):
+    alias: Optional[str] = None
+    avatar: Optional[str] = None
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

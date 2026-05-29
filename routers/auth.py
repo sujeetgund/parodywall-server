@@ -5,7 +5,7 @@ import random
 import string
 from database import get_db
 from models import User, Admin
-from schemas import UserCreate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
+from schemas import UserCreate, UserUpdate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
 from auth_utils import create_access_token, verify_token, get_password_hash, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -91,5 +91,30 @@ def get_current_user(db: Session = Depends(get_db), creds: HTTPAuthorizationCred
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    
+    return user
+
+@router.patch("/me", response_model=UserResponse)
+def update_current_user(
+    req: UserUpdate,
+    db: Session = Depends(get_db), 
+    creds: HTTPAuthorizationCredentials = Depends(security)
+):
+    payload = verify_token(creds.credentials)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    user_id = payload.get("sub")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    
+    if req.alias is not None:
+        user.alias = req.alias
+    if req.avatar is not None:
+        user.avatar = req.avatar
+        
+    db.commit()
+    db.refresh(user)
     
     return user
