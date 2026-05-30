@@ -118,3 +118,22 @@ def update_current_user(
     db.refresh(user)
     
     return user
+
+
+# ── Admin-only: User management ────────────────────────
+
+from dependencies import get_current_admin
+
+@router.get("/admin/users", response_model=list[UserResponse])
+def admin_list_users(db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
+    return db.query(User).order_by(User.created_at.desc()).all()
+
+@router.patch("/admin/users/{user_id}/superuser")
+def admin_toggle_superuser(user_id: str, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_superuser = not user.is_superuser
+    db.commit()
+    db.refresh(user)
+    return {"is_superuser": user.is_superuser, "alias": user.alias}
