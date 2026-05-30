@@ -25,3 +25,31 @@ def verify_token(token: str):
         return payload
     except jwt.PyJWTError:
         return None
+
+import json
+import urllib.request
+import urllib.parse
+from fastapi import HTTPException
+
+def verify_turnstile(token: str | None):
+    if not settings.turnstile_secret_key:
+        return  # Turnstile not configured, skip verification
+    if not token:
+        raise HTTPException(status_code=400, detail="Turnstile token is missing")
+    
+    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    data = urllib.parse.urlencode({
+        "secret": settings.turnstile_secret_key,
+        "response": token
+    }).encode("utf-8")
+    
+    try:
+        req = urllib.request.Request(url, data=data)
+        with urllib.request.urlopen(req) as response:
+            result = json.loads(response.read().decode())
+            if not result.get("success"):
+                raise HTTPException(status_code=400, detail="Turnstile verification failed")
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Error communicating with Turnstile")

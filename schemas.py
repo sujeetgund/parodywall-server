@@ -8,6 +8,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     avatar: str
+    turnstile_token: Optional[str] = None
 
 class UserUpdate(BaseModel):
     alias: Optional[str] = None
@@ -16,9 +17,11 @@ class UserUpdate(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+    turnstile_token: Optional[str] = None
 
 class RequestCodeRequest(BaseModel):
     email: EmailStr
+    turnstile_token: Optional[str] = None
 
 class VerifyCodeRequest(BaseModel):
     email: EmailStr

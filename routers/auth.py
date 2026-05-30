@@ -6,7 +6,7 @@ import string
 from database import get_db
 from models import User, Admin
 from schemas import UserCreate, UserUpdate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
-from auth_utils import create_access_token, verify_token, get_password_hash, verify_password
+from auth_utils import create_access_token, verify_token, get_password_hash, verify_password, verify_turnstile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
@@ -17,6 +17,8 @@ def generate_random_alias():
 
 @router.post("/signup")
 def signup(req: UserCreate, db: Session = Depends(get_db)):
+    verify_turnstile(req.turnstile_token)
+    
     user = db.query(User).filter(User.email == req.email).first()
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -34,6 +36,8 @@ def signup(req: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/signin")
 def signin(req: UserLogin, db: Session = Depends(get_db)):
+    verify_turnstile(req.turnstile_token)
+    
     user = db.query(User).filter(User.email == req.email).first()
     if not user or not user.hashed_password or not verify_password(req.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
@@ -56,6 +60,8 @@ def admin_signin(req: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/request-code")
 def request_code(req: RequestCodeRequest, db: Session = Depends(get_db)):
+    verify_turnstile(req.turnstile_token)
+    
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

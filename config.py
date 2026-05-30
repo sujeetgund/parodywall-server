@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     aws_region_name: str = Field(validation_alias="AWS_REGION_NAME", default="us-east-1")
     aws_s3_bucket_name: str = Field(validation_alias="AWS_S3_BUCKET_NAME", default="")
 
+    # Turnstile
+    turnstile_secret_key: str = Field(validation_alias="TURNSTILE_SECRET_KEY", default="")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
