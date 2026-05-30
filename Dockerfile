@@ -34,9 +34,10 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 # Copy the application code
-COPY app /app/app
+COPY *.py /app/
+COPY routers /app/routers
 # Copy alembic for runtime migrations
-COPY migrations /app/migrations
+COPY alembic /app/alembic
 COPY alembic.ini /app/alembic.ini
 
 # Create a non-privileged user to run the app
@@ -48,4 +49,4 @@ ENV PORT=8080
 
 # Command to run the application
 # We use uvicorn directly since it's in our venv/bin (which is in PATH)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
