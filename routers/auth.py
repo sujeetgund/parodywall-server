@@ -50,6 +50,7 @@ def signin(req: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/admin/signin")
 def admin_signin(req: UserLogin, db: Session = Depends(get_db)):
+    verify_turnstile(req.turnstile_token)
     admin = db.query(Admin).filter(Admin.email == req.email).first()
     if not admin or not verify_password(req.password, admin.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid admin credentials")
