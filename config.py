@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "ParodyWall API"
     environment: str = Field(default="development", validation_alias="ENVIRONMENT")
     debug: bool = Field(default=True, validation_alias="DEBUG")
+    allowed_origins: str = Field(default="http://localhost:3000", validation_alias="ALLOWED_ORIGINS")
 
     # Database
     database_url: str = Field(validation_alias="DATABASE_URL")
