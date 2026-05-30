@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
-from routers import auth, upload, pins
+from routers import auth, upload, pins, admin
 from config import settings
 from database import engine, Base
 from models import *  # noqa – ensure all models are registered with Base
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(pins.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
