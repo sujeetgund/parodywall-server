@@ -5,9 +5,9 @@ import random
 import string
 from database import get_db
 from models import User, Admin
-from schemas import UserCreate, UserUpdate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
+from schemas import UserCreate, UserUpdate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 from auth_utils import create_access_token, verify_token, get_password_hash, verify_password, verify_turnstile
-from email_utils import send_verification_email
+from email_utils import send_verification_email, send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
@@ -101,6 +101,62 @@ def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(user.id)})
     
     return {"access_token": access_token, "token_type": "bearer", "user": UserResponse.model_validate(user)}
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    if req.turnstile_token:
+        verify_turnstile(req.turnstile_token)
+    
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        # Don't leak whether user exists, just return generic message
+        return {"message": "If an account with that email exists, we sent a password reset link."}
+        
+    code = generate_verification_code()
+    user.reset_code = code
+    db.commit()
+    
+    send_password_reset_email(req.email, code)
+    
+    return {"message": "If an account with that email exists, we sent a password reset link."}
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid request")
+        
+    if not user.reset_code or user.reset_code != req.code:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code")
+        
+    user.hashed_password = get_password_hash(req.new_password)
+    user.reset_code = None
+    db.commit()
+    
+    return {"message": "Password successfully reset."}
+
+@router.post("/change-password")
+def change_password(
+    req: ChangePasswordRequest, 
+    db: Session = Depends(get_db), 
+    creds: HTTPAuthorizationCredentials = Depends(security)
+):
+    payload = verify_token(creds.credentials)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    user_id = payload.get("sub")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        
+    if not user.hashed_password or not verify_password(req.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+        
+    user.hashed_password = get_password_hash(req.new_password)
+    db.commit()
+    
+    return {"message": "Password successfully changed."}
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user(db: Session = Depends(get_db), creds: HTTPAuthorizationCredentials = Depends(security)):

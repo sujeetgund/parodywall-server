@@ -124,3 +124,110 @@ def send_verification_email(to_email: str, code: str):
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {str(e)}", exc_info=True)
 
+
+def get_password_reset_html(code: str) -> str:
+    """
+    Returns an HTML email template for password reset.
+    """
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset your ParodyWall password</title>
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                background-color: #fbfbf9;
+                color: #000000;
+            }}
+            .container {{
+                max-width: 500px;
+                margin: 40px auto;
+                background-color: #ffffff;
+                border-radius: 24px;
+                padding: 40px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                text-align: center;
+            }}
+            .logo {{
+                width: 48px;
+                height: 48px;
+                background-color: #e60023;
+                color: #ffffff;
+                font-size: 24px;
+                font-weight: bold;
+                border-radius: 50%;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 48px;
+                margin-bottom: 24px;
+            }}
+            h1 {{
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0 0 12px 0;
+                letter-spacing: -0.8px;
+            }}
+            p {{
+                font-size: 16px;
+                color: #62625b;
+                line-height: 1.4;
+                margin: 0 0 32px 0;
+            }}
+            .code-box {{
+                background-color: #f6f6f3;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 32px;
+                font-size: 32px;
+                font-weight: 700;
+                letter-spacing: 8px;
+                color: #000000;
+            }}
+            .footer {{
+                font-size: 12px;
+                color: #91918c;
+                margin-top: 40px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">P</div>
+            <h1>Password Reset Request</h1>
+            <p>We received a request to reset your ParodyWall password. Please use the following 6-digit code to continue.</p>
+            <div class="code-box">{code}</div>
+            <p style="font-size: 14px; margin-bottom: 0;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+            <div class="footer">
+                &copy; 2026 ParodyWall. All rights reserved.
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+def send_password_reset_email(to_email: str, code: str):
+    logger.info(f"Attempting to send password reset email to {to_email}")
+    if not RESEND_API_KEY:
+        logger.error(f"Mock send password reset email to {to_email} with code {code} (No Resend API Key)")
+        return
+    
+    html_content = get_password_reset_html(code)
+    
+    try:
+        payload = {
+            "from": RESEND_FROM_EMAIL,
+            "to": to_email,
+            "subject": f"{code} is your ParodyWall password reset code",
+            "html": html_content
+        }
+        logger.info(f"Sending with payload: {payload['from']} -> {payload['to']}")
+        r = resend.Emails.send(payload)
+        logger.info(f"Successfully sent password reset email to {to_email}: {r}")
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {to_email}: {str(e)}", exc_info=True)

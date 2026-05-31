@@ -27,6 +27,19 @@ class VerifyCodeRequest(BaseModel):
     email: EmailStr
     code: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    turnstile_token: Optional[str] = None
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
 class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
