@@ -24,8 +24,7 @@ app.include_router(admin.router)
 
 @app.on_event("startup")
 def on_startup():
-    # Create any new tables
-    Base.metadata.create_all(bind=engine)
+    # We rely exclusively on Alembic for migrations now, not create_all.
     # Migrate existing users table: add is_superuser if missing
     inspector = inspect(engine)
     columns = [col["name"] for col in inspector.get_columns("users")]

@@ -49,4 +49,4 @@ ENV PORT=8080
 
 # Command to run the application
 # We use uvicorn directly since it's in our venv/bin (which is in PATH)
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
