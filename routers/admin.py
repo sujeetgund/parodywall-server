@@ -76,3 +76,36 @@ def delete_pin(pin_id: UUID, db: Session = Depends(get_db), admin: Admin = Depen
     db.delete(pin)
     db.commit()
     return {"success": True}
+
+@router.get("/reports")
+def get_reports(db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
+    # Group reports by pin_id and join with Pin and User
+    # to get pin details and report count.
+    reports = db.query(
+        Pin,
+        User,
+        func.count(PinReport.id).label("report_count")
+    ).join(PinReport, Pin.id == PinReport.pin_id)\
+     .join(User, Pin.user_id == User.id)\
+     .group_by(Pin.id, User.id)\
+     .order_by(func.count(PinReport.id).desc()).all()
+    
+    result = []
+    for p, u, count in reports:
+        result.append({
+            "id": p.id,
+            "title": p.text_content if p.text_content else (f"{p.type.capitalize()} Pin"),
+            "image": p.image_url,
+            "type": p.type,
+            "created_at": p.created_at,
+            "author_alias": u.alias,
+            "author_id": u.id,
+            "report_count": count
+        })
+    return result
+
+@router.delete("/reports/{pin_id}/dismiss")
+def dismiss_pin_reports(pin_id: UUID, db: Session = Depends(get_db), admin: Admin = Depends(get_current_admin)):
+    db.query(PinReport).filter(PinReport.pin_id == pin_id).delete()
+    db.commit()
+    return {"success": True}
