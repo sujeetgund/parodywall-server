@@ -7,6 +7,7 @@ from database import get_db
 from models import User, Admin
 from schemas import UserCreate, UserUpdate, UserLogin, RequestCodeRequest, VerifyCodeRequest, UserResponse
 from auth_utils import create_access_token, verify_token, get_password_hash, verify_password, verify_turnstile
+from email_utils import send_verification_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
@@ -14,6 +15,8 @@ security = HTTPBearer()
 def generate_random_alias():
     return "user_" + "".join(random.choices(string.digits, k=6))
 
+def generate_verification_code():
+    return "".join(random.choices(string.digits, k=6))
 
 @router.post("/signup")
 def signup(req: UserCreate, db: Session = Depends(get_db)):
@@ -23,15 +26,20 @@ def signup(req: UserCreate, db: Session = Depends(get_db)):
     if user:
         raise HTTPException(status_code=400, detail="Email already registered")
         
+    code = generate_verification_code()
     user = User(
         email=req.email,
         alias=generate_random_alias(),
         avatar=req.avatar,
         hashed_password=get_password_hash(req.password),
-        is_verified=False
+        is_verified=False,
+        verification_code=code
     )
     db.add(user)
     db.commit()
+    
+    send_verification_email(req.email, code)
+    
     return {"message": "User created. Please verify email."}
 
 @router.post("/signin")
@@ -66,21 +74,27 @@ def request_code(req: RequestCodeRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+        
+    code = generate_verification_code()
+    user.verification_code = code
+    db.commit()
+    
+    send_verification_email(req.email, code)
+    
     return {"message": "Verification code sent if email is valid."}
 
 @router.post("/verify-code")
 def verify_code(req: VerifyCodeRequest, db: Session = Depends(get_db)):
-    if req.code == "654321":
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-    if req.code != "123456":
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-        
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+        
+    if not user.verification_code or user.verification_code != req.code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
     
     if not user.is_verified:
         user.is_verified = True
+        user.verification_code = None
         db.commit()
         db.refresh(user)
 
